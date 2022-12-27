@@ -768,7 +768,10 @@ void ParamReturn::modifyWithDemangledData(DataFlowEntry &de, Demangler::Function
 		retTypeSet = true;
 	}
 
-	if (detectedParamCount == demanglerParamCount+1)
+	size_t colon_idx = std::string(funcPair.second->getDeclaration()).find(':');
+	size_t paren_idx = std::string(funcPair.second->getDeclaration()).find('(');
+	bool has_namespace = (colon_idx != std::string::npos) && (paren_idx == std::string::npos || paren_idx > colon_idx);
+	if (detectedParamCount == demanglerParamCount+1 || has_namespace)
 	{
 		/*
 		 * Adds pointer to result or this, cant be sure based on information we have.

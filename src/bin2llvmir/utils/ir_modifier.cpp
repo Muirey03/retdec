@@ -1148,14 +1148,36 @@ IrModifier::FunctionPair IrModifier::modifyFunction(
 	// Store arguments into allocated objects (stacks, registers) at the
 	// beginning of function body.
 	//
-	auto asIt = argStores.begin();
-	auto asEndIt = argStores.end();
+	std::vector<llvm::Value*> arm64ArgStores(nf->arg_size(), nullptr);
+	unsigned int discoveredArgStores = 0;
+	for (auto& myBlck : *nf) {
+		for (auto& myInst : myBlck)
+			for (int i = 0; i < myInst.getNumOperands(); i++) {
+				llvm::Value* op = myInst.getOperand(i);
+				if (op->getName().startswith("x")) {
+					llvm::APInt reg_idx;
+					op->getName().substr(1).getAsInteger(10, reg_idx);
+					if (reg_idx.getZExtValue() < nf->arg_size() && !arm64ArgStores[reg_idx.getZExtValue()]) {
+						arm64ArgStores[reg_idx.getZExtValue()] = op;
+						discoveredArgStores++;
+					}
+				}
+			}
+	}
+
+	auto* argStoresToUse = discoveredArgStores >= argStores.size() ? &arm64ArgStores : &argStores;
+	auto asIt = argStoresToUse->begin();
+	auto asEndIt = argStoresToUse->end();
 	for (auto aIt = nf->arg_begin(), eIt = nf->arg_end();
 			aIt != eIt && asIt != asEndIt;
 			++aIt, ++asIt)
 	{
 		auto* a = &(*aIt);
 		auto* v = *asIt;
+
+		if (!v) {
+			continue;
+		}
 
 		assert(v->getType()->isPointerTy());
 		auto* conv = IrModifier::convertValueToType(

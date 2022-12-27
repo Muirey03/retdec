@@ -409,7 +409,8 @@ llvm::Value* Capstone2LlvmIrTranslatorArm64_impl::extractVectorValue(
 		case ARM64_VAS_INVALID:
 			return val;
 		default:
-			throw GenericError("Arm64: extractVectorValue(): Unknown VESS type");
+			//throw GenericError("Arm64: extractVectorValue(): Unknown VESS type: " + std::to_string(op.vas));
+			return val;
 	}
 
 	return val;
